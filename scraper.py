@@ -127,6 +127,26 @@ def download_images(driver, html_content, question_folder):
     
     return str(soup)
 
+def fix_html_paths(html_content):
+    """Fix asset paths to use absolute URLs for offline viewing."""
+    prairielearn_base = "https://us.prairielearn.com"
+    
+    # Fix asset paths: /assets/... -> https://us.prairielearn.com/assets/...
+    html_content = re.sub(
+        r'(src|href)="(/assets/[^"]+)"',
+        r'\1="' + prairielearn_base + r'\2"',
+        html_content
+    )
+    
+    # Fix PrairieLearn paths: /pl/... -> https://us.prairielearn.com/pl/...
+    html_content = re.sub(
+        r'(src|href)="(/pl/[^"]+)"',
+        r'\1="' + prairielearn_base + r'\2"',
+        html_content
+    )
+    
+    return html_content
+
 def take_full_page_screenshot(driver, filepath):
     """Capture full-page screenshot using Chrome DevTools."""
     try:
@@ -212,57 +232,6 @@ def extract_course_name(driver):
         return "PrairieLearn_Archive"
     except:
         return "PrairieLearn_Archive"
-
-def fix_css_paths(output_dir):
-    """Fix HTML files to use absolute URLs for CSS/JS assets."""
-    from pathlib import Path
-    
-    logger.info("\n=== FIXING CSS/JS PATHS ===")
-    archive_path = Path(output_dir)
-    
-    if not archive_path.exists():
-        logger.warning("Output directory not found, skipping CSS fix")
-        return
-    
-    html_files = list(archive_path.rglob("*.html"))
-    logger.info(f"Found {len(html_files)} HTML files to fix")
-    
-    fixed_count = 0
-    prairielearn_base = "https://us.prairielearn.com"
-    
-    for html_file in html_files:
-        try:
-            with open(html_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            original_content = content
-            
-            # Fix asset paths
-            content = re.sub(
-                r'(src|href)="(/assets/[^"]+)"',
-                r'\1="' + prairielearn_base + r'\2"',
-                content
-            )
-            
-            # Fix PrairieLearn paths
-            content = re.sub(
-                r'(src|href)="(/pl/[^"]+)"',
-                r'\1="' + prairielearn_base + r'\2"',
-                content
-            )
-            
-            if content != original_content:
-                with open(html_file, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                fixed_count += 1
-                
-                if fixed_count % 50 == 0:
-                    logger.info(f"  Fixed {fixed_count}/{len(html_files)} files...")
-        
-        except Exception as e:
-            logger.warning(f"Failed to fix {html_file}: {e}")
-    
-    logger.info(f"CSS fix complete! Fixed {fixed_count} HTML files.")
 
 def main():
     course_url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_COURSE_URL
@@ -507,6 +476,7 @@ def main():
                     time.sleep(0.5)
                     
                     updated_html = download_images(driver, driver.page_source, question_folder)
+                    updated_html = fix_html_paths(updated_html)
                     
                     os.makedirs(question_folder, exist_ok=True)
                     with open(save_path, 'w', encoding='utf-8') as f:
@@ -521,10 +491,6 @@ def main():
                     continue
 
         logger.info("\n=== SCRAPING COMPLETE ===")
-        
-        # Automatically fix CSS paths for offline viewing
-        logger.info("\n=== APPLYING CSS FIXES ===")
-        fix_css_paths(output_dir)
         logger.info("=== ALL DONE! ===")
 
     except Exception as e:
