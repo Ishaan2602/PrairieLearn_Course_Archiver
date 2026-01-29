@@ -2,7 +2,7 @@
 
 Creates permanent, offline read-only archives of PrairieLearn courses for personal study and review. 
 
-I built this tool to save PrairieLearn course resources for later studying/review/reference before professors disabled access to the course on PL after its completion.
+I built this tool to save PrairieLearn course resources for later reference before professors disabled access to the course on PL after its completion.
 
 ## What It Does
 
